@@ -16,9 +16,20 @@ function M.add()
   print("Added: " .. title)
 end
 
+function M.canvaspull()
+  local canvas = vim.fn.system('todo canvaslist')
+  print("Added task from canvas!")
+  print("current task list:")
+  M.list()
+end
+
+
 function M.setup()
   vim.api.nvim_create_user_command("TodoList", M.list, {})
   vim.api.nvim_create_user_command("TodoAdd", M.add, {})
+  vim.api.nvim_create_user_command("TodoPull", M.canvaspull, {})
 end
+
+
 
 return M
