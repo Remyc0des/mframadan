@@ -1,11 +1,23 @@
-#!/usr/bin/env python3
+#!/Users/remonecarter/projects/mframadan/core/venv/bin/python3
 import sqlite3
 import argparse
-from datetime import datetime
 from rich.console import Console
 from rich.table import Table
+from dotenv import load_dotenv
 import os
+from canvasapi import Canvas
+import json
 
+load_dotenv()
+CONFIG_FILE = os.path.expanduser("~/.config/mframadan/config.json")
+
+with open(CONFIG_FILE) as f:
+    config = json.load(f)
+
+
+auth_token = config.get("auth_token")
+API_URL = config.get("API_URL")
+canvas = Canvas(API_URL, auth_token)
 DB_PATH = os.path.expanduser("~/.local/share/todo.db")
 console = Console()
 
@@ -30,6 +42,35 @@ def add_task(title, due_date=None, course=None):
     conn.commit()
     conn.close()
     console.print(f"[green]Added: [/green] {title} ({course or 'No course'})")
+
+
+
+def  get_canvas_tasks():
+    print(API_URL)
+    todos = canvas.get_todo_items()
+    for todo in todos:
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute(
+                f"""
+                INSERT INTO tasks (title, due_date, course)
+                SELECT '{todo.assignment['name']}', '{todo.assignment['due_at']}', '{todo.context_name}'
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM tasks WHERE title = '{todo.assignment['name']}'
+                )
+                """
+                )
+        conn.commit()
+        conn.close()
+    console.print(f"[green]Added missing task from canvas")
+
+
+
+    
+
+
+    
+
 
 def list_tasks():
     conn = sqlite3.connect(DB_PATH)
@@ -72,6 +113,8 @@ def main():
 
     sub.add_parser("list")
 
+    sub.add_parser("canvaslist")
+
     done = sub.add_parser("complete")
     done.add_argument("id", type=int)
 
@@ -84,6 +127,8 @@ def main():
         list_tasks()
     elif args.command == "complete":
         complete_task(args.id)
+    elif args.command == "canvaslist":
+        get_canvas_tasks()
     else: 
         parser.print_help()
 
