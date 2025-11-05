@@ -6,3 +6,4 @@ __pycache__/
 *.log
 *.swp
 *.sqlite3
+.env
